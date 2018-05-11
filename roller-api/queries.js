@@ -8,8 +8,11 @@ var db = pgp(config.db);
 // add query functions
 
 module.exports = {
-  getProfileByName: getProfileByName,
-  getProfileById: getProfileById
+    getProfileByName: getProfileByName,         
+    authenticate: authenticate,
+    deleteOldKey: deleteOldKey,
+    createKey: createKey
+//    getProfileById: getProfileById
 };
 
 // PROFILE MANAGEMENT
@@ -100,69 +103,29 @@ function resetPassword(id, callback, error) {
         .catch(err => { error('UPDATE', err) });
 }
 
-function expireToken(req, res) {
-    // TODO: schema des api key
-    entities.apikey.where({ username : req.user, key : req.apikey}).deleteAll(connection, function(err) {
-        if (err) {
-            res.send(500, err);
-            return;
-        }
-        security.clearApiKey(req.apikey);
-        res.send("OK");
-    });
-};
-
-function login(email, password, callback, error) {
-    db.one('SELECT pr.* FROM profile JOIN creds ON profile.id = creds.id WHERE email = ${email} AND password = ${password}', {email: email, password: security.hashPassword(password)}
-        .then( profile => {
-
-            if (result.status == 4) {
-                error('STATUS_BANNED', 'Compte désactivé');
-            }
-            else if (result.status == 2) {
-                error('STATUS_PENDING', 'Compte en attente de validation');
-            }
-            
-        })
+function authenticate(email, password, callback, error) {
+    db.one('SELECT pr.* FROM profile JOIN creds ON profile.id = creds.id WHERE email = ${email} AND password = ${password}', {email: email, password: security.hashPassword(password)})
+        .then( callback(profile))
         .catch(err => { error('AUTHENT', err) });
+}
 
-        var apikey = security.createApiKey(req.body.username);
-        var secToken;
-        var adminname;
-        var guitype;
-        if (result.isadmin) {
-            secToken = security.createToken(req.body.username, apikey, true);
-            adminname = req.body.username;
-            guitype = 'admin';
-        }
-        else {
-            secToken = security.createToken(req.body.username, apikey, false);
-            adminname = null;
-            guitype = 'regular';
-        }
-        var keyEntity;
-        if (typeof req.apikey != "undefined") {
-            entities.apikey.where('key = ? and username = ?', [req.apikey, req.body.username]).updateAll(connection, { key : apikey}, function(err) {
-                if (err) {
-                    res.send(500, err);
-                    return;
-                }
-                security.clearApiKey(req.apikey);
-                res.send({ id : 0, token : secToken, gui : guitype});
-                return;
-            });
-        }
-        else {
-            var newkey = new entities.apikey({ username : req.body.username, key : apikey, admin : adminname}).save(connection, function(err) {
-                if (err) {
-                    res.send(500, err);
-                    return;
-                }
-                res.send({ id : 0, token : secToken, gui : guitype});
-                return;
-            });
-        }
-    });
-};
+function deleteOldKey(apikey, callback, error) {
+    db.any('DELETE FROM apikey WHERE key = ${key}', { key: apikey})
+        .then( callback(profile))
+        .catch(err => { error('DELETEKEY', err) });
+}
+
+function deleteAllKeys(idprofile, callback, error) {
+    db.any('DELETE FROM apikey WHERE idprofile = ${idprofile}', { idprofile: idprofile})
+        .then( callback())
+        .catch(err => { error('DELETEKEYS', err) });
+}
+
+function createKey(idprofile, apikey, callback, error) {
+    db.none('INSERT INTO apikey (key, idprofile) VALUES ( ${key}, ${idprofile})', { key: apikey, idprofile: idprofile})
+        .then( callback())
+        .catch(err => { error('INSERTKEY', err) });
+}
+
 
 

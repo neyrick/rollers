@@ -1,6 +1,7 @@
 var jwt = require('jwt-simple');
-var config = require("../config.json");
+var config = require("./config.js");
 var crypto = require("crypto");
+const queries = require('./queries');
 
 var apikeys = {};
 
@@ -12,18 +13,32 @@ function isRestricted(url) {
     });
 }
 
-function isAdminRestricted(url) {
-    return (url.indexOf('/admin') != -1);
-}
-
-function isKeyValid(username, key) {
+function isKeyValid(key) {
     var registered = apikeys[key];
     if ( typeof registered == "undefined")
         return false;
-    if (registered !== username)
+    if ( typeof registered.idprofile == "undefined")
         return false;
+//    if (registered.idprofile !== idprofile)
+//        return false;
     return true;
 }
+
+/*
+function createToken(pm_idprofile, pm_apikey) {
+    return jwt.encode({
+        idprofile : pm_idprofile,
+        apikey : pm_apikey,
+    }, config.jwt.secret);
+};
+*/
+
+function createApiKey(idprofile) {
+    var newkey = crypto.randomBytes(20).toString('hex') + Date.now();
+    apikeys[newkey] = { idprofile: idprofile };
+    return newkey;
+};
+
 
 exports.genPassword = function() {
         return Math.random().toString(36).slice(-8);
@@ -50,102 +65,71 @@ exports.requireLoggedIn = function(req, res, next) {
         return next();
 };
 
-exports.requireAdmin = function(req, res, next) {
-	if ((typeof req.admin == "undefined") || (req.admin == null) || (req.admin == '')) {
-	    console.log("Restriction admin");
-	    res.send(403, 'Fonction réservée aux administrateurs');
-	    return;
-	}
-        return next();
-};
-
 exports.authParser = function(req, res, next) {
-//    if (req.method == 'OPTIONS') return next();
+
+    if (!req.getPath().startsWith('/api/')) {
+        console.log('Auth parser skipped');
+        return next();
+    }
+        console.log('Auth parser used');
+
     if (req.headers && req.headers.authorization) {
         var tokenMatch = req.headers.authorization.match(/^Bearer (.*)$/);
         if (tokenMatch) {
-            try {
-                authdata = jwt.decode(tokenMatch[1], config.jwt.secret);
-
-                if (!isKeyValid(authdata.username, authdata.apikey)) {
-                    console.log("URL: " + req.url);
-                    console.log("Token: " + tokenMatch[1]);
-                    console.log("Clé invalide: " + JSON.stringify(authdata));
-                    if (isRestricted(req.url)) {
-                        res.send(403, 'Token expiré');
-                        return;
-                    }
-                    else return next();
-                }
-                else {
-		        req.user = authdata.username;
-		        req.apikey = authdata.apikey;
-		        req.admin = authdata.admin;
-		        req.spoof = authdata.spoof;
-                        return next();
-                }
-            } catch (error) {
-                console.log("Erreur JWT:" + error);
-                if (isRestricted(req.url)) {
-                    res.send(403, 'Format de token invalide');
-                    return;
-                }
-                else return next();
+            var apikey = tokenMatch[1];
+            req.set('apikey', apikey);
+            if (!isKeyValid(authdata.apikey)) {
+                console.log("URL: " + req.url);
+                console.log("Token: " + tokenMatch[1]);
+                console.log("Clé invalide: " + JSON.stringify(authdata));
             }
+            var keydata = apikeys[apikey];
+            req.set('idprofile', keydata.idprofile);
+            req.set('sessiondata', keydata);
         } else {
             console.log("Token invalide");
-            if (isRestricted(req.url)) {
-                res.send(403, 'Format de token invalide');
-                return;
-            }
-            else return next();
         }
     }
-    else return next();
+    return next();
 };
 
 exports.createActionCode = function() {
     return crypto.randomBytes(20).toString('hex');
 };
 
-exports.createApiKey = function(username) {
-    var newkey = crypto.randomBytes(20).toString('hex');
-    apikeys[newkey] = username;
-    return newkey;
-};
-
-exports.updateApiKey = function(username, newkey, oldkey) {
-    if ( typeof oldkey != "undefined")
-        delete apikeys[oldkey];
-    apikeys[newkey] = username;
-};
-
 exports.clearApiKey = function(key) {
     delete apikeys[key];
+    deleteOldKey(key, function(){}, function(err){
+        console.log('Error when deleting key ' + key + ": " + err);
+    });
 };
 
-exports.clearAllApiKeys = function(username) {
+exports.clearAllApiKeys = function(idprofile, callback, error) {
     var todelete = [];
     for (key in apikeys) {
-        if (apikeys[key] == username) todelete.push(key);
+        if (apikeys[key].idprofile == idprofile) todelete.push(key);
     }
-    todelete.forEach(function(key) {
-        delete apikeys[key];
-    });  
-};
 
-exports.createToken = function(pm_username, pm_apikey, pm_admin, pm_spoof) {
-    return jwt.encode({
-        username : pm_username,
-        apikey : pm_apikey,
-        admin : pm_admin,
-        spoof : pm_spoof
-    }, config.jwt.secret);
+    queries.deleteAllKeys(idprofile, () => {
+        todelete.forEach(function(key) {
+            delete apikeys[key];
+            callback();
+        });  
+    }, error);
+
+
 };
 
 exports.initApiKeys = function(rawkeys) {
     apikeys = {};
     rawkeys.forEach(function(rawkey) {
-        apikeys[rawkey.key] = rawkey.username;
+        apikeys[rawkey.key] = { idprofile: rawkey.idprofile};
     });
 };
+
+exports.createNewToken = function(pm_idprofile, callback, error) {
+    var apikey = createApiKey(pm_idprofile);
+    queries.createKey(pm_idprofile, apikey, () => {
+        callback(apikey);
+    }, error);
+}

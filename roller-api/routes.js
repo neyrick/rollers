@@ -1,10 +1,19 @@
 'use strict'
 
-const queries  = require('./queries');
+const services  = require('./services');
+
+
+function standardError(errorCode, errorMessage) {
+    res.send(500, { errorCode: errorCode, errorMessage: errorMesssage});
+}
 
 module.exports = function(ctx) {
 
     const server = ctx.server
+
+    server.get('/api/profile/:name', services.getProfileByName);
+
+    server.post('/api/login', services.login);
 
     // assign collection to variable for further use
 //    const collection = db.collection('todos')
@@ -25,15 +34,7 @@ module.exports = function(ctx) {
         next()
 
     })
-*/
-    server.get('/profile/:name', (req, res, next) => {
 
-        queries.getProfileByName(req.params.name, function (data) { res.send(200, data) }, function (err) {res.send(500, err)});
-
-        next();
-
-    })
-/*
     server.put('/todos/:id', (req, res, next) => {
 
         // extract data from body and add timestamps

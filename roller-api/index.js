@@ -1,13 +1,17 @@
 'use strict'
 
 const config  = require('./config'),
-      restify = require('restify');
+      restify = require('restify'),
+      security = require('./security');
 
 const server = restify.createServer({
     name    : config.name,
     version : config.version
 });
 
+server.pre(restify.plugins.pre.context());
+server.pre(restify.plugins.pre.dedupeSlashes());
+server.pre(security.authParser);
 
 server.use(restify.plugins.bodyParser({ mapParams: true }));
 server.use(restify.plugins.acceptParser(server.acceptable));

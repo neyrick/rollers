@@ -3,13 +3,12 @@
 const services  = require('./services');
 
 
-function standardError(errorCode, errorMessage) {
-    res.send(500, { errorCode: errorCode, errorMessage: errorMesssage});
-}
 
 module.exports = function(ctx) {
 
     const server = ctx.server
+
+    server.get('/', (req, res, next) => { res.redirect('/static/index.html', next); } );
 
     server.get('/api/profile/:name', services.getProfileByName);
 

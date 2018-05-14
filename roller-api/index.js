@@ -29,6 +29,8 @@ server.listen(config.port, () => {
             config.env
         );
 
+        server.get('/static/*', restify.plugins.serveStatic({ directory: './static', default: 'index.html', appendRequestPath: false}));
+
         require('./routes')({ server });
 
 });

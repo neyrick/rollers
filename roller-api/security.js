@@ -68,10 +68,10 @@ exports.requireLoggedIn = function(req, res, next) {
 exports.authParser = function(req, res, next) {
 
     if (!req.getPath().startsWith('/api/')) {
-        console.log('Auth parser skipped');
+        //console.log('Auth parser skipped');
         return next();
     }
-        console.log('Auth parser used');
+//        console.log('Auth parser used');
 
     if (req.headers && req.headers.authorization) {
         var tokenMatch = req.headers.authorization.match(/^Bearer (.*)$/);
@@ -127,7 +127,7 @@ exports.initApiKeys = function(rawkeys) {
     });
 };
 
-exports.createNewToken = function(pm_idprofile, callback, error) {
+exports.createNewKey = function(pm_idprofile, callback, error) {
     var apikey = createApiKey(pm_idprofile);
     queries.createKey(pm_idprofile, apikey, () => {
         callback(apikey);

@@ -11,8 +11,12 @@ module.exports = function(ctx) {
     server.get('/', (req, res, next) => { res.redirect('/static/index.html', next); } );
 
     server.get('/api/profile/:name', services.getProfileByName);
+    server.put('/api/profile', services.registerProfile);
 
     server.post('/api/login', services.login);
+    server.post('/api/logoff', services.logoff);
+
+    server.get('/api/action/:code', services.performSecureAction);
 
     // assign collection to variable for further use
 //    const collection = db.collection('todos')

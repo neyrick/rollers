@@ -12,6 +12,7 @@
   "dependencies": {
     "crypto": "^1.0.1",
     "jwt-simple": "^0.5.1",
+    "momentjs": "^2.0.0",
     "pg-promise": "^8.4.3",
     "restify": "^7.1.1"
   }

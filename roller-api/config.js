@@ -7,5 +7,11 @@ module.exports = {
     port: process.env.PORT || 3000,
     db: {
         host: 'localhost', port: 5432, database: 'rollers', user: 'rollers', password: 'rollersp'
-    }
+    },
+	smtp: {
+	     service: "Gmail",
+	     auth: {
+		 user: "blah@gmail.com",
+		 pass: "######"
+	      }
 }

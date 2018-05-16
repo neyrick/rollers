@@ -111,6 +111,7 @@ function updateProfile(inProfile, inPassword, callback, error) {
 };
 
 function updateProfileStatus(idprofile, status, callback, error) {
+//    console.log('Updating status');
     db.none('UPDATE profile SET status = ${status} WHERE id = ${id}', { status: status, id: idprofile})
             .then(callback)
            .catch(err => { standardDbError(err, error) });
@@ -182,13 +183,13 @@ function getPendingSecureActionByCode(code, callback, error) {
         .then( result => {
             if (result.length == 0) { error('SECURE_ACTION_UNKNOWN', 'Impossible d\'identifier l\'action à effectuer'); }
             else if (result.length == 1) {
+//                    console.log('age: ' + result[0].age);
+//                    console.log('now: ' + new Date().valueOf());
+//                    console.log('res: ' + (new Date().valueOf() - consts.SECURE_ACTION_TTL));
                 if (result[0].status != consts.actionstatus.PENDING) {
                     return error('SECURE_ACTION_DONE', 'Action déjà effectuée');
                 }
                 else if (result[0].age < (new Date().valueOf() - consts.SECURE_ACTION_TTL)) {
-                    console.log('age: ' + result[0].age);
-                    console.log('now: ' + new Date().valueOf());
-                    console.log('res: ' + (new Date().valueOf() - consts.SECURE_ACTION_TTL));
                     return error('SECURE_ACTION_OBSOLETE', 'Cette action a expiré.');
                 }
                 else {
@@ -203,6 +204,7 @@ function getPendingSecureActionByCode(code, callback, error) {
 
 function updateSecureAction(id, status, callback, error) {
     db.none('UPDATE secure_action SET status = ${status} WHERE id = ${id}', { status: status, id: id})
+    .then(callback)
     .catch(err => { standardDbError(err, error) });
 }
 

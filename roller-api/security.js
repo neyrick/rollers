@@ -135,12 +135,11 @@ exports.createNewKey = function(pm_idprofile, callback, error) {
 };
 
 exports.grantApiAccess = function(idprofile, req, res, callback, error) {
-    console.log('access');
         if (typeof req.get('apikey') != "undefined") {
             clearApiKey(req.get('apikey'));
         }
         
-        security.createNewKey(idprofile, key => {
+        exports.createNewKey(idprofile, key => {
             res.send({ result : 0, key : key, gui : 'regular'});
             callback();
         }, (err) => { error('CREATE_KEY', err)});

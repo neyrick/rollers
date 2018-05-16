@@ -116,6 +116,7 @@ function performSecureAction(req, res, next) {
                         security.grantApiAccess(result.profile, req, res, next, (code, error) => standardError(res, code, error, next));
                     }, (errorcode, errormessage) => { standardError(res, errorcode, errormessage, next); });
                 }, (errorcode, errormessage) => { standardError(res, errorcode, errormessage, next); });
+                break;
 
             case 'RES_PW_SEC': // TODO
 /*

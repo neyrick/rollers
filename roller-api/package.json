@@ -11,8 +11,10 @@
   "description": "",
   "dependencies": {
     "crypto": "^1.0.1",
+    "email-templates": "^3.6.0",
     "jwt-simple": "^0.5.1",
     "momentjs": "^2.0.0",
+    "nodemailer": "^4.6.4",
     "pg-promise": "^8.4.3",
     "restify": "^7.1.1"
   }

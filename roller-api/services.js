@@ -9,7 +9,11 @@ module.exports = {
   login: login,
   logoff: logoff,
   registerProfile: registerProfile,
-  performSecureAction: performSecureAction
+  performSecureAction: performSecureAction,
+    updateProfileDescription: updateProfileDescription,
+    updateProfileUsername: updateProfileUsername,
+    updateProfileEmail: updateProfileEmail,
+    updateProfilePassword: updateProfilePassword
 };
 
 var emailRE = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
@@ -86,18 +90,70 @@ function registerProfile(req, res, next) {
            return standardError(res, 'REGISTER_PROFILE_EMAILINVALID', 'Adresse e-mail invalide.' , next);
     }
 
-    var newprofile = { name : username, email : email, description : '', status : consts.status.PENDING };
+    var newprofile = { name : username, email : email, description : '', status : consts.status.ACTIVE };
     queries.createProfile(newprofile, password, idprofile => {
-
+        security.grantApiAccess(idprofile, req, res, next, (code, error) => standardError(res, code, error, next));
         // secure action for profile activation
+/*
         var action = { name : 'ACTIVATE_PROFILE', params: {}, profile: idprofile, code: security.createActionCode()};
         queries.createSecureAction(action, () => {
             res.send({ result : 0, profile: newprofile });
+            next();
+        } , (errorcode, errormessage) => { standardError(res, errorcode, errormessage, next); });
+*/
+    }, (errorcode, errormessage) => { standardError(res, errorcode, errormessage, next); });
+}
+
+function updateProfileDescription(req, res, next) {
+    var description = req.params.description;
+    if (typeof description == "undefined") {
+        description = '';
+    }
+    queries.updateProfileDescription(req.get('idprofile'), description, () => {res.send({ result : 0});next();},
+    (errorcode, errormessage) => { standardError(res, errorcode, errormessage, next); });
+}
+
+function updateProfileUsername(req, res, next) {
+    var username = req.params.username;
+    if (typeof username == "undefined") {
+           return standardError(res, 'UPDATE_PROFILE_NOUSERNAME', 'Vous devez fournir un nom d\'utilisateur.' , next);
+    }
+    queries.updateProfileUsername(req.get('idprofile'), username, () => {res.send({ result : 0});next();},
+    (errorcode, errormessage) => { standardError(res, errorcode, errormessage, next); });
+}
+
+function updateProfilePassword(req, res, next) {
+    var oldpassword = req.params.oldpassword;
+    var newpassword = req.params.newpassword;
+    if ((typeof oldpassword == "undefined") || (oldpassword == "")) {
+           return standardError(res, 'UPDATE_PROFILE_NOOLDPASSWORD', 'Vous devez fournir le mot de passe actuel.' , next);
+    }
+    if ((typeof newpassword == "undefined") || (newpassword == "")) {
+           return standardError(res, 'UPDATE_PROFILE_NONEWPASSWORD', 'Vous devez fournir le nouveau mot de passe.' , next);
+    }
+    queries.updateProfilePassword(req.get('idprofile'), oldpassword, newpassword, () => {res.send({ result : 0});next();},
+    (errorcode, errormessage) => { standardError(res, errorcode, errormessage, next); });
+}
+
+function updateProfileEmail(req, res, next) {
+    var email = req.params.email;
+    if ((typeof email == "undefined") || (!emailRE.test(email.toLowerCase()))) {
+           return standardError(res, 'UPDATE_PROFILE_EMAILINVALID', 'Adresse e-mail invalide.' , next);
+    }
+    queries.checkEmail(email, () => {
+        // secure action for email update
+        var code = security.createActionCode();
+        var action = { name : 'UPDATE_EMAIL', params: { email: email}, profile: req.get('idprofile'), code: code};
+        queries.createSecureAction(action, () => {
+            res.send({ result : 0 });
     // TODO: ENVOI MAIL
             next();
         } , (errorcode, errormessage) => { standardError(res, errorcode, errormessage, next); });
 
     }, (errorcode, errormessage) => { standardError(res, errorcode, errormessage, next); });
+
+//    queries.updateProfileEmail(req.get('idprofile'), description, () => {res.send({ result : 0});next();},
+//    (errorcode, errormessage) => { standardError(res, errorcode, errormessage, next); });
 }
 
 function performSecureAction(req, res, next) {
@@ -110,8 +166,17 @@ function performSecureAction(req, res, next) {
     queries.getPendingSecureActionByCode(code, result => {
         
         switch(result.action) {
+/*
             case 'ACTIVATE_PROFILE': 
                 queries.updateProfileStatus(result.profile, consts.status.ACTIVE, () => {
+                    queries.updateSecureAction(result.id, consts.actionstatus.DONE, () => {
+                        security.grantApiAccess(result.profile, req, res, next, (code, error) => standardError(res, code, error, next));
+                    }, (errorcode, errormessage) => { standardError(res, errorcode, errormessage, next); });
+                }, (errorcode, errormessage) => { standardError(res, errorcode, errormessage, next); });
+                break;
+*/
+            case 'UPDATE_EMAIL': 
+                queries.updateProfileEmail(result.profile, result.params.email, () => {
                     queries.updateSecureAction(result.id, consts.actionstatus.DONE, () => {
                         security.grantApiAccess(result.profile, req, res, next, (code, error) => standardError(res, code, error, next));
                     }, (errorcode, errormessage) => { standardError(res, errorcode, errormessage, next); });

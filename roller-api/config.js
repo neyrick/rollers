@@ -14,4 +14,5 @@ module.exports = {
 		 user: "blah@gmail.com",
 		 pass: "######"
 	      }
+    }
 }

@@ -11,6 +11,7 @@ types.setTypeParser(1114, str => moment.utc(str).format());
 var connectionString = 'postgres://localhost:5432/puppies';
 var db = pgp(config.db);
 
+const playerColumnSet = new pgp.helpers.ColumnSet(['setting', 'profile', 'role'], {table: {table: 'player'}});
 
 // add query functions
 
@@ -20,9 +21,16 @@ module.exports = {
     authenticate: authenticate,
     deleteOldKey: deleteOldKey,
     createKey: createKey,
+    loadAllKeys: loadAllKeys,
 
     createProfile: createProfile,
     updateProfileStatus: updateProfileStatus,
+    updateProfileDescription: updateProfileDescription,
+    updateProfileUsername: updateProfileUsername,
+    updateProfileEmail: updateProfileEmail,
+    updateProfilePassword: updateProfilePassword,
+    checkEmail: checkEmail,
+    updateRoles: updateRoles,
 
     createSecureAction : createSecureAction,
     getPendingSecureActionByCode : getPendingSecureActionByCode,
@@ -90,11 +98,16 @@ function createProfile(inProfile, inPassword, callback, error) {
     });
 };
 
-function updateProfile(inProfile, inPassword, callback, error) {
+function updateRoles(idprofile, roles, callback, error) {
 
-    db.none('UPDATE profile SET name = ${name}, description = ${description}, email = ${email}, status = ${status} WHERE id = ${id}', { name: inProfile.name, email: inProfile.email, description: inProfile.description, status: inProfile.status, id: inProfile.id})
-        .then(callback)
-       .catch(err => { standardDbError(err, error) });
+    db.none('DELETE FROM player WHERE profile = ${idprofile}', {idprofile: idprofile})
+        .then(() => { if (roles.length > 0) {
+             roles.forEach( role => role.profile = idprofile);
+             const insertRoles = pgp.helpers.insert(roles, playerColumnSet);
+             db.none(insertRoles).then(callback)
+            .catch(err => { standardDbError(err, error) });     
+        }})
+        .catch(err => { standardDbError(err, error) });     
 /*
             TODO: LOGGING 
             var logdata = createBaseLogData(req);
@@ -110,9 +123,61 @@ function updateProfile(inProfile, inPassword, callback, error) {
 
 };
 
+function checkEmail(email, callback, error) {
+    db.one('SELECT count(*) AS rescount FROM profile WHERE email = ${email}', { email: email})
+        .then( result => {
+//            console.log('result: ' + JSON.stringify(result));
+            if (result.rescount != 0) { error('UPDATE_PROFILE_EMAIL_CONFLICT', 'Adresse e-mail déjà utilisée.'); }
+            else callback();
+        })
+        .catch(err => { standardDbError(err, error) });
+}
+
+function updateProfileEmail(idprofile, email, callback, error) {
+    db.none('UPDATE profile SET email = ${email} WHERE id = ${id}', { email: email, id: idprofile})
+            .then(callback)
+       .catch(err => {
+            if (err.code == 23505) {
+                error('UPDATE_PROFILE_EMAIL_CONFLICT', 'Adresse e-mail déjà utilisée.');
+            }
+            else {
+                standardDbError(err, error);
+            }
+        });
+}
+
+function updateProfileUsername(idprofile, username, callback, error) {
+    db.none('UPDATE profile SET name = ${username} WHERE id = ${id}', { username: username, id: idprofile})
+            .then(callback)
+       .catch(err => {
+            if (err.code == 23505) {
+                error('UPDATE_PROFILE_USERNAME_CONFLICT', 'Nom d\'utilisateur déjà pris.');
+            }
+            else {
+                standardDbError(err, error);
+            }
+        });
+}
+
+
+function updateProfilePassword(id, oldpassword, newpassword, callback, error) {
+    db.result('UPDATE creds SET passwd = ${newpassword} WHERE profile = ${id} AND passwd = ${oldpassword}', { id: inProfile.id, oldpassword : security.hashPassword(oldpassword), newpassword: security.hashPassword(newpassword)})
+        .then( result => {
+            if (result.rowCount == 1) { callback(); }
+            else { error('UNKNOWN', 'Utilisateur introuvable ou ancien mot de passe incorrect') }
+        })
+        .catch(err => { standardDbError(err, error) });
+}
+
+
 function updateProfileStatus(idprofile, status, callback, error) {
-//    console.log('Updating status');
     db.none('UPDATE profile SET status = ${status} WHERE id = ${id}', { status: status, id: idprofile})
+            .then(callback)
+           .catch(err => { standardDbError(err, error) });
+}
+
+function updateProfileDescription(idprofile, description, callback, error) {
+    db.none('UPDATE profile SET description = ${description} WHERE id = ${id}', { description: description, id: idprofile})
             .then(callback)
            .catch(err => { standardDbError(err, error) });
 }
@@ -120,15 +185,6 @@ function updateProfileStatus(idprofile, status, callback, error) {
 function deleteProfile(id, callback, error) {
         db.none('DELETE FROM profile WHERE id = ${id} CASCADE', {id: id})
         .then(callback)
-        .catch(err => { standardDbError(err, error) });
-}
-
-function updatePassword(id, oldpassword, newpassword, callback, error) {
-    db.result('UPDATE creds SET passwd = ${newpassword} WHERE profile = ${id} AND passwd = ${oldpassword}', { id: inProfile.id, oldpassword : security.hashPassword(oldpassword), newpassword: security.hashPassword(newpassword)})
-        .then( result => {
-            if (result.rowCount == 1) { callback(); }
-            else { error('UNKNOWN', 'Utilisateur introuvable ou ancien mot de passe incorrect') }
-        })
         .catch(err => { standardDbError(err, error) });
 }
 
@@ -170,6 +226,11 @@ function createKey(idprofile, apikey, callback, error) {
     db.none('INSERT INTO apikey (key, idprofile) VALUES ( ${key}, ${idprofile})', { key: apikey, idprofile: idprofile})
         .then( callback())
     .catch(err => { standardDbError(err, error) });
+}
+
+function loadAllKeys(callback, error) {
+    db.any('SELECT key, idprofile FROM apikey').
+        then( callback).catch(error);
 }
 
 function createSecureAction(action, callback, error) {

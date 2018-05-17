@@ -1,7 +1,7 @@
 'use strict'
 
 const services  = require('./services');
-
+const security  = require('./security');
 
 
 module.exports = function(ctx) {
@@ -10,8 +10,12 @@ module.exports = function(ctx) {
 
     server.get('/', (req, res, next) => { res.redirect('/static/index.html', next); } );
 
-    server.get('/api/profile/:name', services.getProfileByName);
+    server.get('/api/profile/:name', security.checkLoggedIn, services.getProfileByName);
     server.put('/api/profile', services.registerProfile);
+    server.post('/api/profile/description', security.checkLoggedIn, services.updateProfileDescription);
+    server.post('/api/profile/email', security.checkLoggedIn, services.updateProfileEmail);
+    server.post('/api/profile/username', security.checkLoggedIn, services.updateProfileUsername);
+    server.post('/api/profile/password', security.checkLoggedIn, services.updateProfilePassword);
 
     server.post('/api/login', services.login);
     server.post('/api/logoff', services.logoff);

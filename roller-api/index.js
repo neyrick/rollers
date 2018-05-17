@@ -20,17 +20,20 @@ server.use(restify.plugins.queryParser({ mapParams: true }));
 
 server.listen(config.port, () => {
 
+        security.initApiKeys( () => {
 
-        console.log(
-            '%s v%s ready to accept connections on port %s in %s environment.',
-            server.name,
-            config.version,
-            config.port,
-            config.env
-        );
+            console.log(
+                '%s v%s ready to accept connections on port %s in %s environment.',
+                server.name,
+                config.version,
+                config.port,
+                config.env
+            );
 
-        server.get('/static/*', restify.plugins.serveStatic({ directory: './static', default: 'index.html', appendRequestPath: false}));
+            server.get('/static/*', restify.plugins.serveStatic({ directory: './static', default: 'index.html', appendRequestPath: false}));
 
-        require('./routes')({ server });
-
+            require('./routes')({ server });
+        }, (error) => {
+            console.log('Error when loading current API keys: ' + error);
+        });
 });

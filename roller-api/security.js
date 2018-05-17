@@ -56,11 +56,11 @@ exports.crossDomainHeaders = function(req, res, next) {
     next();
 };
 
-exports.requireLoggedIn = function(req, res, next) {
-	if ((typeof req.user == "undefined") || (req.user == null) || (req.user == '')) {
+exports.checkLoggedIn = function(req, res, next) {
+	if (typeof req.get('idprofile') == "undefined") {
 	    console.log("Restriction logged-in");
 	    res.send(403, 'Fonction réservée aux utilisateurs connectés');
-	    return;
+	    return next(false);
 	}
         return next();
 };
@@ -77,15 +77,17 @@ exports.authParser = function(req, res, next) {
         var tokenMatch = req.headers.authorization.match(/^Bearer (.*)$/);
         if (tokenMatch) {
             var apikey = tokenMatch[1];
-            req.set('apikey', apikey);
-            if (!isKeyValid(authdata.apikey)) {
+            if (!isKeyValid(apikey)) {
                 console.log("URL: " + req.url);
                 console.log("Token: " + tokenMatch[1]);
-                console.log("Clé invalide: " + JSON.stringify(authdata));
+                console.log("Clé invalide: " + apikey);
             }
-            var keydata = apikeys[apikey];
-            req.set('idprofile', keydata.idprofile);
-            req.set('sessiondata', keydata);
+            else {
+                req.set('apikey', apikey);
+                var keydata = apikeys[apikey];
+                req.set('idprofile', keydata.idprofile);
+                req.set('sessiondata', keydata);
+            }
         } else {
             console.log("Token invalide");
         }
@@ -120,11 +122,15 @@ exports.clearAllApiKeys = function(idprofile, callback, error) {
 
 };
 
-exports.initApiKeys = function(rawkeys) {
+exports.initApiKeys = function(callback, error) {
     apikeys = {};
-    rawkeys.forEach(function(rawkey) {
-        apikeys[rawkey.key] = { idprofile: rawkey.idprofile};
-    });
+    queries.loadAllKeys( rawkeys => {
+        rawkeys.forEach(function(rawkey) {
+//            console.log('Chargement clé: ' + JSON.stringify(rawkey));
+            apikeys[rawkey.key] = { idprofile: rawkey.idprofile};
+        });
+        callback();
+    }, error);
 };
 
 exports.createNewKey = function(pm_idprofile, callback, error) {

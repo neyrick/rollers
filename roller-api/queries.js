@@ -106,6 +106,9 @@ function updateRoles(idprofile, roles, callback, error) {
              const insertRoles = pgp.helpers.insert(roles, playerColumnSet);
              db.none(insertRoles).then(callback)
             .catch(err => { standardDbError(err, error) });     
+        }
+        else {
+            callback()
         }})
         .catch(err => { standardDbError(err, error) });     
 /*
@@ -200,7 +203,7 @@ function resetPassword(id, callback, error) {
 }
 
 function authenticate(email, password, callback, error) {
-    db.any('SELECT pr.* FROM profile pr JOIN creds ON pr.id = creds.profile WHERE pr.email = ${email} AND creds.password = ${password}', {email: email, password: security.hashPassword(password)})
+    db.any('SELECT pr.* FROM profile pr JOIN creds ON pr.id = creds.profile WHERE pr.email = ${email} AND creds.password = ${password}', {email: email, password: password})
         .then( result => {
             if (result.length == 0) { error('AUTHENT', 'Utilisateur introuvable ou mot de passe incorrect'); }
             else if (result.length == 1) { callback(result[0]); }

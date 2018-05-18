@@ -16,3 +16,6 @@ create table secure_action (id BIGSERIAL NOT null primary key, created timestamp
 
 insert into profile (name, description, email, status) values ('NomProfTest', 'DescProfTest', 'a@b.com', 3);
 insert into creds (profile, password) values (1, '7e240de74fb1ed08fa08d38063f6a6a91462a815');
+
+insert into setting (name) values ('Eclipse Phase'), ('Ars Magica'), ('Donjons et Dragons'), ('Légende des 5 Anneaux');
+insert into apikey (key, idprofile) VALUES ('26211bbdf2fb73f009a9548219a76eb994b820e61526653358316', 1);

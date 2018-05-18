@@ -16,6 +16,7 @@ module.exports = function(ctx) {
     server.post('/api/profile/email', security.checkLoggedIn, services.updateProfileEmail);
     server.post('/api/profile/username', security.checkLoggedIn, services.updateProfileUsername);
     server.post('/api/profile/password', security.checkLoggedIn, services.updateProfilePassword);
+    server.post('/api/profile/roles', security.checkLoggedIn, services.updatePlayerRoles);
 
     server.post('/api/login', services.login);
     server.post('/api/logoff', services.logoff);

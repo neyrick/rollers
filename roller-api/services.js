@@ -5,15 +5,19 @@ const security = require('./security');
 
 
 module.exports = {
-  getProfileByName: getProfileByName,
-  login: login,
-  logoff: logoff,
-  registerProfile: registerProfile,
-  performSecureAction: performSecureAction,
+
+    getProfileByName: getProfileByName,
+    login: login,
+    logoff: logoff,
+    performSecureAction: performSecureAction,
+
+    registerProfile: registerProfile,
     updateProfileDescription: updateProfileDescription,
     updateProfileUsername: updateProfileUsername,
     updateProfileEmail: updateProfileEmail,
-    updateProfilePassword: updateProfilePassword
+    updateProfilePassword: updateProfilePassword,
+
+    updatePlayerRoles: updatePlayerRoles
 };
 
 var emailRE = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
@@ -204,3 +208,16 @@ function performSecureAction(req, res, next) {
 
             
 };
+
+function updatePlayerRoles(req, res, next) {
+        var roles = req.params.roles;
+
+    if (typeof roles === "undefined") {
+        return standardError(res, 'UPDATE_ROLES_NOROLES', 'Rôles nécessaires.' , next);
+    }
+
+    queries.updateRoles(req.get('idprofile'), roles, result => {
+        res.send({ result : 0 });
+        next();
+    }, (errorcode, errormessage) => { standardError(res, errorcode, errormessage, next); });
+}

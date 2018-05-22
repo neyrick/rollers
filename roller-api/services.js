@@ -17,6 +17,9 @@ module.exports = {
     updateProfileEmail: updateProfileEmail,
     updateProfilePassword: updateProfilePassword,
 
+    addFriend: addFriend,
+    removeFriend: removeFriend,
+
     updatePlayerRoles: updatePlayerRoles
 };
 
@@ -220,4 +223,32 @@ function updatePlayerRoles(req, res, next) {
         res.send({ result : 0 });
         next();
     }, (errorcode, errormessage) => { standardError(res, errorcode, errormessage, next); });
+}
+
+function addFriend(req, res, next) {
+    var target = req.params.target;
+
+    if (typeof target === "undefined") {
+        return standardError(res, 'ADD_REL_NOTARGET', 'Ami absent.' , next);
+    }
+
+    queries.addProfileRelationByName(req.get('idprofile'), target, consts.profRelations.FRIEND, () => {
+        res.send({ result : 0 });
+        next();
+     }, (errorcode, errormessage) => { standardError(res, errorcode, errormessage, next); });
+
+}
+
+function removeFriend(req, res, next) {
+    var target = req.params.target;
+
+    if (typeof target === "undefined") {
+        return standardError(res, 'REM_REL_NOTARGET', 'Ami absent.' , next);
+    }
+
+    queries.deleteProfileRelationByName(req.get('idprofile'), target, consts.profRelations.FRIEND, () => {
+        res.send({ result : 0 });
+        next();
+     }, (errorcode, errormessage) => { standardError(res, errorcode, errormessage, next); });
+
 }

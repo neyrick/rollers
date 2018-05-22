@@ -36,7 +36,8 @@ module.exports = {
     getPendingSecureActionByCode : getPendingSecureActionByCode,
     updateSecureAction : updateSecureAction,
 
-
+    addProfileRelationByName: addProfileRelationByName,
+    deleteProfileRelationByName: deleteProfileRelationByName
 };
 
 function standardDbError(err, errorFunction) {
@@ -271,4 +272,18 @@ function updateSecureAction(id, status, callback, error) {
     .then(callback)
     .catch(err => { standardDbError(err, error) });
 }
+
+function addProfileRelationByName(idUser, targetname, reltype, callback, error) {
+    db.none('INSERT INTO profile_rels ( prof1, prof2, reltype ) VALUES ( ${prof1}, (select id from profile where name = ${targetname}), ${reltype})', { prof1: idUser, targetname: targetname, reltype: reltype})
+        .then( callback())
+    .catch(err => { standardDbError(err, error) });
+
+}
+
+function deleteProfileRelationByName(idprofile, targetName, reltype, callback, error) {
+    db.any('DELETE FROM profile_rels WHERE prof1=${prof1} AND prof2=(select id from profile where name = ${targetname}) AND reltype=${reltype}', { prof1: idUser, targetname: targetname, reltype: reltype})
+        .then( callback())
+    .catch(err => { standardDbError(err, error) });
+}
+
 
